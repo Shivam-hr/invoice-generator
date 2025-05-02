@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice History</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .invoice-card {
+      transition: all 0.3s ease;
+    }
+    .invoice-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <h1 class="text-3xl font-bold text-indigo-700">Invoice History</h1>
+      <div class="w-full md:w-64">
+        <input 
+          id="search-input"
+          type="text" 
+          placeholder="Search invoices..." 
+          class="w-full border p-3 rounded-lg bg-white shadow-sm focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500">
+      </div>
+      <a href="file.html" class="bg-indigo-600 text-white px-4 py-2 rounded-lg whitespace-nowrap">
+        Back to Generator
+      </a>
+    </div>
+
+    <div id="invoice-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Invoices will be loaded here -->
+    </div>
+  </div>
+  <!-- ADD this right before the closing </body> 
+<script>
+  // Close the window if opened from main page
+  if(window.opener) {
+    document.querySelector('a[href="file.html"]').addEventListener('click', () => {
+      window.close();
+    });
+  }
+</script>
+  <script src="invoice-history.js"></script>
+</body>
+</html>

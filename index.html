@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Invoice Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(to bottom right, #e0f2f1, #f3e5f5);
+    }
+    input, textarea, select {5
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 2px #a5b4fc;
+    }
+    label {
+      font-weight: 600;
+      color: #374151;
+      display: block;
+    }
+    .card {
+      background: white;
+      border-radius: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+    }
+    #invoice-history-modal {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Additional styles for date inputs */
+    input[type="date"] {
+      position: relative;
+    }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      background-color: #f3f4f6;
+      padding: 5px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    
+    input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      background-color: #e5e7eb;
+    }
+  </style>
+</head>
+<body class="p-8 min-h-screen">
+  <div class="max-w-6xl mx-auto card grid grid-cols-1 md:grid-cols-4 gap-8">
+    <!-- Main Content Area -->
+    <div class="md:col-span-3 space-y-8">
+
+      <!-- Header -->
+      <div class="flex justify-between items-start border-b pb-4">
+        <div>
+          <h2 class="text-3xl font-bold text-indigo-700">Pete Smith</h2>
+          <p class="text-gray-500 text-sm">Sage Financials</p>
+        </div>
+        <div class="text-right">
+          <h1 class="text-4xl font-extrabold text-gray-900">INVOICE</h1>
+          <input id="invoiceNumber" type="text" class="mt-2 border px-4 py-2 w-36 text-right rounded-lg bg-gray-50" readonly />
+        </div>
+      </div>
+
+      <!-- Billing -->
+      <div class="grid md:grid-cols-2 gap-6">
+        <div>
+          <label>Bill To</label>
+          <input id="billTo" class="w-full border p-3 rounded-lg bg-gray-50" placeholder="Client name" />
+        </div>
+        <div>
+          <label>Ship To</label>
+          <input id="shipTo" class="w-full border p-3 rounded-lg bg-gray-50" placeholder="Address" />
+        </div>
+      </div>
+
+      <!-- Invoice Details -->
+      <div class="grid md:grid-cols-3 gap-4">
+        <div>
+          <label>Date</label>
+          <input id="date" type="date" class="border p-3 w-full rounded-lg bg-gray-50 hover:border-indigo-400 transition-colors cursor-pointer" />
+        </div>
+        <div>
+          <label>Terms</label>
+          <input id="terms" type="text" placeholder="NET-30" class="border p-3 w-full rounded-lg bg-gray-50" />
+        </div>
+        <div>
+          <label>Due Date</label>
+          <input id="dueDate" type="date" class="border p-3 w-full rounded-lg bg-gray-50 hover:border-indigo-400 transition-colors cursor-pointer" />
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div>
+        <table class="w-full text-left table-auto border-t text-sm">
+          <thead class="bg-indigo-100 text-indigo-800">
+            <tr>
+              <th class="p-3">Item</th>
+              <th class="p-3">Qty</th>
+              <th class="p-3">Rate</th>
+              <th class="p-3">Amount</th>
+              <th class="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="invoice-items"></tbody>
+        </table>
+        <button onclick="addItem()" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg transition-all">+ Add Item</button>
+      </div>
+
+      <!-- Notes -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <label>Notes</label>
+          <textarea id="notes" class="border p-3 w-full rounded-lg bg-gray-50" rows="3" placeholder="Notes..."></textarea>
+        </div>
+        <div>
+          <label>Terms</label>
+          <textarea id="termsText" class="border p-3 w-full rounded-lg bg-gray-50" rows="3" placeholder="Terms..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Buttons -->
+      <button onclick="exportPDF()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold shadow-md">Download PDF</button>
+      <button onclick="sendEmail()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold shadow-md">Send Email</button>
+      <button onclick="saveInvoice()" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl font-semibold shadow-md">Save Invoice</button>
+     
+      <button onclick="showInvoiceHistory()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-xl font-semibold shadow-md">View Invoice History</button>
+
+      <!-- Currency -->
+      <div>
+        <label>Currency</label>
+        <select id="currency" class="w-full border p-3 rounded-lg bg-gray-50" onchange="convertCurrency()">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="INR" selected>INR (₹)</option>
+        </select>
+      </div>
+
+      <!-- Totals -->
+      <div class="border-t pt-4 space-y-3 text-sm">
+        <div class="flex justify-between font-medium text-gray-700"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+        <div class="flex justify-between font-medium text-gray-700"><span>Tax (18%)</span><span id="tax">₹0.00</span></div>
+        <div class="flex justify-between font-bold text-xl text-gray-800"><span>Total</span><span id="total">₹0.00</span></div>
+        <div class="flex justify-between items-center font-medium text-gray-700">
+          <span>Paid</span>
+          <input id="paid" type="number" value="0" class="border w-24 text-right p-2 rounded-md bg-gray-50" oninput="calculateTotals()" />
+        </div>
+        <div class="flex justify-between font-bold text-lg text-red-600"><span>Balance</span><span id="balance">₹0.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Link to JavaScript -->
+  <script src="app.js"></script>
+  <script>
+    function generateInvoiceNumber() {
+      const last = parseInt(localStorage.getItem('lastInvoiceNumber') || '1000', 10);
+      const next = last + 1;
+      localStorage.setItem('lastInvoiceNumber', next);
+      document.getElementById("invoiceNumber").value = 'INV-' + next;
+    }
+    window.onload = generateInvoiceNumber;
+  </script>
+</body>
+</html>
